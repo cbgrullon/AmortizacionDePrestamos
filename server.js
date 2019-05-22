@@ -4,8 +4,8 @@ const cors= require('cors');
 const bodyParser = require('body-parser');
 
 let api = express();
-api.use(bodyParser.json());
 api.use(cors());
+api.use(bodyParser.json());
 
 const loanRoutes = require('./routes/loanRoutes');
 
