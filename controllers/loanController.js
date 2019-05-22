@@ -1,7 +1,7 @@
 'use strict'
 const numeral = require('numeral');
 function GenerateTable(req,res){
-    if(!req.body.interes|| !req.body.montoTotal||!req.body.plazo){
+    if(!req.body.interesAnual|| !req.body.montoTotal||!req.body.plazo){
         return res.status(400).send({message:'Parametros invalidos'})
     }
     let montoTotal, interesAnual,plazo,interesMensual,cuotaMensual;
