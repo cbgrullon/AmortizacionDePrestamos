@@ -5,9 +5,12 @@ function GenerateTable(req,res){
     //Calculo de Cuota
     montoTotal = req.body.montoTotal;
     interesAnual = req.body.interesAnual;
-    plazo = req.body.plazo;
+    plazo = parseFloat(req.body.plazo);
+    let abonos = req.body.abonos;
+    if(!montoTotal || !interesAnual ||! plazo)
+        return res.status(400).send({message:'Faltan campos por completar'});
     interesMensual = (interesAnual /12)/100;
-    cuotaMensual =montoTotal*((interesMensual*Math.pow((1+interesMensual),plazo) /(Math.pow((1+interesMensual),plazo)-1)));
+    let cuotaMensualOriginal = cuotaMensual =generaCuotaMensual({interesMensual,montoTotal,plazo});
     //Cuota 0
     var amortizacion = [];
     amortizacion.push({
@@ -17,8 +20,32 @@ function GenerateTable(req,res){
         total:0,
         saldo:montoTotal
     });
+    
     let saldo=montoTotal;
-    for(var index =1; index<= plazo; index++){
+    var abonosIncluidos = 0;
+    for(var index =1; index<= plazo +(abonos ? abonos.length:0); index++){
+        if(abonos)
+        {
+            let abono  = abonos.find((item)=>{
+                return index===item.cuota;
+            });
+            if(abono){
+                abonosIncluidos++;
+                if(saldo < abono.monto)
+                    return res.status(400).send({message:`El abono a Capital en la Cuota ${abono.cuota}, con el Monto de: $${abono.monto} es mayor al saldo pendiente: $${saldo}`});
+                saldo-= abono.monto;
+                cuotaMensual = generaCuotaMensual({interesMensual,montoTotal:saldo,plazo:plazo+abonosIncluidos-index})
+                
+                amortizacion.push({
+                    cuota:index,
+                    capital:abono.monto,
+                    interes:0,
+                    total: abono.monto,
+                    saldo:format(saldo)
+                });
+                continue;
+            }
+        }
         let interesActual,capitalAcutal;
         interesActual = saldo*interesMensual;
         capitalAcutal = cuotaMensual-interesActual;
@@ -37,11 +64,14 @@ function GenerateTable(req,res){
             saldo:format(saldo)
         });
     }
-    return res.status(200).send(amortizacion);
+    return res.status(200).send({cuotaMensual:cuotaMensualOriginal,amortizacion});
 }
 function format(input){
     let num = numeral(input);
     let formatted = num.format('0.00');
     return parseFloat(formatted);
+}
+function generaCuotaMensual({interesMensual,montoTotal,plazo}){
+    return montoTotal*((interesMensual*Math.pow((1+interesMensual),plazo) /(Math.pow((1+interesMensual),plazo)-1)));
 }
 module.exports = exports = {GenerateTable}
